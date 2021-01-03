@@ -1,0 +1,62 @@
+trigger:
+- master
+
+variables:
+  # App name
+  prodApp: 'Product API'
+
+stages:
+- stage: Test
+  displayName: 'Running the Test for the Product API'
+  jobs:
+  - job: Test
+    displayName: 'Setting up the environment'
+    pool:
+      vmImage: 'Ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '12.x'
+      displayName: 'Install Node.js'
+      continueOnError: false
+    - script: |
+        npm install
+        npm run test
+      displayName: 'npm install and test'
+
+- stage: build
+  displayName: 'Build'
+  jobs:
+  - job: build_test
+    displayName: 'Setting up the environment'
+    pool:
+      vmImage: 'Ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '10.x'
+      displayName: 'Install Node.js'
+      continueOnError: false
+    - script: |
+        npm install
+        npm run build
+      displayName: 'npm install prod and build'
+
+    - task: CmdLine@2
+      inputs:
+        script: 'rm -r node_modules'
+      displayName: 'remove node_modules'
+
+    - task: CmdLine@2
+    - script: |
+        npm install --only=prod
+      displayName: 'Instal production packages for npm'
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive $(Build.SourcesDirectory)'
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)'
+        includeRootFolder: false
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: drop'
+
